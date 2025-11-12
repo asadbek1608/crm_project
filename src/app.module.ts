@@ -4,12 +4,13 @@ import { StudentModule } from "./student/student.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { APP_PIPE } from "@nestjs/core";
 import { ValidationPipe } from "./validation/validation.pipe";
-import { ThrottlerModule } from "@nestjs/throttler";
 import { BotModule } from './bot/bot.module';
+import { MongooseModule } from "@nestjs/mongoose";
 
 @Module({
   imports: [
     ConfigModule.forRoot({ envFilePath: ".env", isGlobal: true }),
+    MongooseModule.forRoot(process.env.MONGO_URI as string),
     TypeOrmModule.forRoot({
       type: "postgres",
       username: "postgres",
