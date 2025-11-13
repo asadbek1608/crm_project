@@ -6,6 +6,10 @@ import { APP_PIPE } from "@nestjs/core";
 import { ValidationPipe } from "./validation/validation.pipe";
 import { BotModule } from './bot/bot.module';
 import { MongooseModule } from "@nestjs/mongoose";
+import { TeacherModule } from './teacher/teacher.module';
+import { GroupModule } from './group/group.module';
+import { PaymentModule } from './payment/payment.module';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -24,6 +28,10 @@ import { MongooseModule } from "@nestjs/mongoose";
     }),
     StudentModule,
     BotModule,
+    TeacherModule,
+    GroupModule,
+    PaymentModule,
+    AttendanceModule,
   ],
   controllers: [],
   providers: [

@@ -1,25 +1,34 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { StudentService } from './student.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 
-@Controller('student')  
+@Controller()
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
-  @Post()
+  @Post("add_student")
   create(@Body() createStudentDto: CreateStudentDto) {
     return this.studentService.create(createStudentDto);
   }
 
-  @Get()
-  findAll() {
-    return this.studentService.findAll();
+  @Get("get_all_students")
+  findAll(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+  ) {
+    return this.studentService.findAll(Number(page) || 1, Number(limit) || 10, search || '');
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.studentService.findOne(+id);
+  @Get("get_statistics")
+  getStatistics() {
+    return this.studentService.getStatistics();
+  }
+
+  @Patch("left_student/:id")
+  leftStudent(@Param('id') id: string) {
+    return this.studentService.leftStudent(+id);
   }
 
   @Patch(':id')

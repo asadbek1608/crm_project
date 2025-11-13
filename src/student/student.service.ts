@@ -1,44 +1,94 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateStudentDto } from './dto/create-student.dto';
-import { UpdateStudentDto } from './dto/update-student.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Student } from 'src/entities/student.entity';
-import { Repository } from 'typeorm';
+import { Repository, Raw } from 'typeorm';
+import { CreateStudentDto } from './dto/create-student.dto';
+import { UpdateStudentDto } from './dto/update-student.dto';
+import { Group } from 'src/entities/group.entity';
 
 @Injectable()
 export class StudentService {
-  constructor(@InjectRepository(Student) private studentRepo: Repository<Student>){}  
+  constructor(
+    @InjectRepository(Student) private studentRepo: Repository<Student>,
+    @InjectRepository(Group) private groupRepo: Repository<Group>
+  ) {}
 
   async create(createStudentDto: CreateStudentDto): Promise<Student> {
-    const {fullName, phoneNumber, profession, parentName, parentNumber, img} = createStudentDto
-    const student = this.studentRepo.create({fullName, phoneNumber, profession, parentName, parentNumber, img})
+    const { fullName, phoneNumber, profession, parentName, parentNumber, img, groupId } = createStudentDto;
+
+    const group = await this.groupRepo.findOne({ where: { id: groupId } });
+    if (!group) throw new NotFoundException('Group not found');
+
+    const student = this.studentRepo.create({
+      fullName,
+      phoneNumber,
+      profession,
+      parentName,
+      parentNumber,
+      img,
+      group
+    });
+
     return this.studentRepo.save(student);
   }
 
-  async findAll(): Promise<Student[]> {
-    return this.studentRepo.find();
+    async findAll(page = 1, limit = 10, search = '') {
+    const [students, total] = await this.studentRepo.findAndCount({
+      where: search
+        ? [
+            { fullName: Raw(alias => `${alias} ILIKE '%${search}%'`) },
+            { phoneNumber: Raw(alias => `${alias} ILIKE '%${search}%'`) },
+            { profession: Raw(alias => `${alias} ILIKE '%${search}%'`) },
+            { parentName: Raw(alias => `${alias} ILIKE '%${search}%'`) },
+          ]
+        : {},
+      take: limit,
+      skip: (page - 1) * limit,
+      order: { id: 'ASC' },
+    });
+
+    return {
+      totalPage: Math.ceil(total / limit),
+      prev: page > 1 ? { page: page - 1, limit } : undefined,
+      next: total > page * limit ? { page: page + 1, limit } : undefined,
+      students,
+    };
   }
 
-  async findOne(id: number): Promise<Student> {
-    const students = await this.studentRepo.findOneBy({id: +id});
+    async getStatistics() {
+    const result = await this.studentRepo.query(`SELECT DATE_TRUNC('month', "joinedAt") AS month,
+        COUNT(id) AS "totalJoined", SUM(CASE WHEN "leftAt" IS NOT NULL THEN 1 ELSE 0 END) AS "leftCount" 
+        FROM student 
+        GROUP BY DATE_TRUNC('month', "joinedAt")
+        ORDER BY month ASC;
+    `);
 
-    if(!students) throw new NotFoundException("Student not found")
-    return students
+    return result;
   }
 
-  async update(id: number, updateStudentDto: UpdateStudentDto): Promise<{message: string}> {
-    const students = await this.studentRepo.findOneBy({id: +id});
-    if(!students) throw new NotFoundException("Student not found")
+    async leftStudent(id: number): Promise<{ message: string }> {
+    const student = await this.studentRepo.findOneBy({ id });
+    if (!student) throw new NotFoundException('Student not found');
 
-    await this.studentRepo.update(id, updateStudentDto)
-    return {message: "Updated"}
+    student.leftAt = new Date();
+    await this.studentRepo.save(student);
+
+    return { message: 'Updated student' };
   }
 
-  async remove(id: number): Promise<{message: string}> {
-    const students = await this.studentRepo.findOneBy({id: +id});
-    if(!students) throw new NotFoundException("Student not found")
+  async update(id: number, updateStudentDto: UpdateStudentDto): Promise<{ message: string }> {
+    const student = await this.studentRepo.findOneBy({ id });
+    if (!student) throw new NotFoundException('Student not found');
 
-    await this.studentRepo.remove(students)
-    return {message: "Deleted"}
+    await this.studentRepo.update(id, updateStudentDto);
+    return { message: 'Updated' };
+  }
+
+  async remove(id: number): Promise<{ message: string }> {
+    const student = await this.studentRepo.findOneBy({ id });
+    if (!student) throw new NotFoundException('Student not found');
+
+    await this.studentRepo.remove(student);
+    return { message: 'Deleted' };
   }
 }

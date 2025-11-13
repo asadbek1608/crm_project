@@ -34,4 +34,7 @@ export class CreateStudentDto {
   @IsNotEmpty()
   @ApiProperty({ description: 'Student img URL', example: 'https://localhost:4001/uploads/student1.png' })
   img: string;
+
+  @ApiProperty({ description: "Group ID raqami", example: 1 })
+  groupId: number;
 }

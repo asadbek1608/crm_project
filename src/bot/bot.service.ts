@@ -70,5 +70,4 @@ async delete(id: string) {
   await this.botModel.deleteOne({ _id: id });
   return { message: 'Deleted' };
 }
-
 }
